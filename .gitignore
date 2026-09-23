@@ -1,0 +1,88 @@
+# Kubernetes Infrastructure .gitignore
+
+# IDE settings
+.idea/
+.vscode/
+.DS_Store
+
+# --- Secrets & Sensitive Data ---
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+*.kubeconfig
+kubeconfig
+kubeconfig.yaml
+kubeconfig.yml
+.kube/
+*.secret.yaml
+*.secret.yml
+!*.enc.yaml
+!*.sops.yaml
+credentials.json
+service-account*.json
+id_rsa
+id_rsa.*
+
+# --- Helm ---
+charts/**/charts/
+*.tgz
+helm-charts/
+requirements.lock
+Chart.lock
+
+# --- Kustomize ---
+.kustomization.env
+
+# --- Terraform / OpenTofu ---
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+crash.log
+crash.*.log
+*.tfvars
+*.tfvars.json
+override.tf
+override.tf.json
+_override.tf
+_override.tf.json
+
+# --- Terragrunt ---
+.terragrunt-cache/
+
+# --- Ansible ---
+*.retry
+vault_pass.txt
+.vault_pass
+
+# --- SOPS ---
+*.decrypted.*
+
+# --- Local Development & Environment ---
+.env
+.env.local
+.env.*.local
+.env.development.local
+.env.test.local
+.env.production.local
+!.env.example
+
+# --- Logs & Temp ---
+*.log
+tmp/
+.tmp/
+dist/
+bin/
+
+# --- Vagrant ---
+.vagrant/
+
+# --- IDEs & OS Files ---
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+*.swo
+Thumbs.db
