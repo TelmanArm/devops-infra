@@ -1,7 +1,5 @@
-# slowroad-armenia-infra
+# devops-infra
 
-Kubernetes infrastructure for [Slow Road Armenia](https://slowroadarmenia.com).
-
-App code: [slowroad-armenia](https://github.com/telmanarm/slowroad-armenia)
+DevOps infrastructure for Kubernetes, Terraform, and related tooling.
 
 🚧 Work in progress. Running locally on minikube.

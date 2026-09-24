@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-PROFILE="slowroad"
+PROFILE="devops-infra"
 
 echo "Starting minikube cluster: $PROFILE"
 
