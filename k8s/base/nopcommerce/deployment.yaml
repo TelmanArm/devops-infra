@@ -1,0 +1,54 @@
+# Deployment: keeps the nopCommerce pod running
+apiVersion: apps/v1
+kind: Deployment
+
+# Name and namespace
+metadata:
+  name: nopcommerce
+  namespace: demo
+
+spec:
+  # Run 1 pod (the disk can't be shared)
+  replicas: 1
+
+  # Stop the old pod before starting a new one
+  strategy:
+    type: Recreate
+
+  # Find the pods that belong to this Deployment
+  selector:
+    matchLabels:
+      app: nopcommerce
+
+  # Pod recipe
+  template:
+    # Pod label (must match the selector)
+    metadata:
+      labels:
+        app: nopcommerce
+
+    spec:
+      # Runs once before the app: copies the default App_Data files to the disk
+      initContainers:
+        - name: copy-app-data
+          image: nopcommerceteam/nopcommerce:4.90.8
+          command: ["sh", "-c", "cp -rn /app/App_Data/. /data/"]  
+          volumeMounts:
+            - name: data
+              mountPath: /data
+
+      # Main app: nopCommerce on port 80, settings saved on the disk
+      containers:
+        - name: nopcommerce
+          image: nopcommerceteam/nopcommerce:4.90.8
+          ports:
+            - containerPort: 80
+          volumeMounts:
+            - name: data
+              mountPath: /app/App_Data
+
+      # Disk: comes from the PVC "nop-data"
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: nop-data

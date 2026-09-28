@@ -5,3 +5,7 @@ resources:
   - namespace.yaml
   - postgres/service.yaml
   - postgres/statefulset.yaml
+  
+  - nopcommerce/pvc.yaml
+  - nopcommerce/deployment.yaml
+  - nopcommerce/service.yaml
