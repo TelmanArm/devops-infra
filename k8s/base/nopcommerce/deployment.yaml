@@ -28,11 +28,19 @@ spec:
         app: nopcommerce
 
     spec:
-      # Runs once before the app: copies the default App_Data files to the disk
+      # Copies the default App_Data files to the disk.
+      # Use "/*", not "/." — BusyBox cp -n skips "/." and copies nothing.
       initContainers:
         - name: copy-app-data
           image: nopcommerceteam/nopcommerce:4.90.8
-          command: ["sh", "-c", "cp -rn /app/App_Data/. /data/"]  
+          command:
+            - sh
+            - -c
+            - |
+              set -e
+              cp -rn /app/App_Data/* /data/
+              echo "App_Data seeded:"
+              ls -la /data
           volumeMounts:
             - name: data
               mountPath: /data
@@ -42,7 +50,38 @@ spec:
         - name: nopcommerce
           image: nopcommerceteam/nopcommerce:4.90.8
           ports:
-            - containerPort: 80
+            - name: http
+              containerPort: 80
+
+          resources:
+            requests:
+              cpu: 200m
+              memory: 512Mi
+            limits:
+              memory: 1536Mi
+
+          # nopCommerce boots slowly, so give it a long startup probe
+          startupProbe:
+            httpGet:
+              path: /
+              port: http
+            periodSeconds: 5
+            timeoutSeconds: 5         # the app answers slowly while booting
+            failureThreshold: 60      # up to ~5 min
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            periodSeconds: 10
+            timeoutSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 3
+
           volumeMounts:
             - name: data
               mountPath: /app/App_Data

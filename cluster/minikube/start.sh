@@ -1,16 +1,16 @@
 #!/bin/bash
-set -e   # stop if any command fails
+set -euo pipefail
 
-# ---- Settings ----
 PROFILE="devops-infra"
 NAMESPACE="demo"
-LOCAL_PORT=8084
+LOCAL_PORT="${LOCAL_PORT:-8084}"
 
-# Repo root = two folders up from this script (works from any folder)
+# repo root path
 ROOT_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
+# kubectl pinned to this cluster/namespace
+KCTL=(kubectl --context="$PROFILE" --namespace="$NAMESPACE")
 
-# ---- 1. Start the cluster ----
-echo "Starting minikube cluster: $PROFILE"
+# start the minikube VM/cluster
 minikube start \
   --profile="$PROFILE" \
   --driver=docker \
@@ -18,30 +18,15 @@ minikube start \
   --memory=6g \
   --kubernetes-version=v1.35.1
 
-# ---- 2. Wait for the node ----
-echo "Waiting for node to be Ready..."
-kubectl wait --for=condition=Ready node --all --timeout=120s
+# wait until the node is ready
+kubectl --context="$PROFILE" wait --for=condition=Ready node --all --timeout=120s
 
-# ---- 3. Deploy everything (Kustomize) ----
-echo "Deploying resources..."
-kubectl apply -k "$ROOT_DIR/k8s/base"
+# deploy k8s manifests via kustomize
+kubectl --context="$PROFILE" apply -k "$ROOT_DIR/k8s/base"
 
-# ---- 4. Wait for the apps ----
-echo "Waiting for Postgres..."
-kubectl rollout status statefulset/db -n "$NAMESPACE" --timeout=120s
+# wait until db and app are up
+"${KCTL[@]}" rollout status statefulset/db --timeout=180s
+"${KCTL[@]}" rollout status deployment/nopcommerce --timeout=300s
 
-echo "Waiting for nopCommerce (first image pull can be slow)..."
-kubectl rollout status deployment/nopcommerce -n "$NAMESPACE" --timeout=300s
-
-# ---- 5. Show the result ----
-echo "Cluster is ready:"
-kubectl get nodes
-kubectl get deploy,statefulset,svc,pods,pvc -n "$NAMESPACE"
-
-# ---- 6. Wait until the nopCommerce pod is really running ----
-echo "Waiting for nopCommerce pod to be Ready..."
-kubectl wait --for=condition=Ready pod -l app=nopcommerce -n "$NAMESPACE" --timeout=300s
-
-# ---- 7. Open access from your Mac ----
-echo "Open http://localhost:$LOCAL_PORT  (Ctrl+C to stop)"
-kubectl port-forward -n "$NAMESPACE" svc/nopcommerce "$LOCAL_PORT":80
+# forward app port to localhost
+"${KCTL[@]}" port-forward svc/nopcommerce "$LOCAL_PORT":80

@@ -17,20 +17,63 @@ spec:
       containers:
         - name: postgres
           image: postgres:15-alpine
+
+          # db user/password/name from Secret
+          envFrom:
+            - secretRef:
+                name: db-credentials
+
+          # data dir path
           env:
-            - name: POSTGRES_USER
-              value: postgres
-            - name: POSTGRES_PASSWORD
-              value: postgres
-            - name: POSTGRES_DB
-              value: myapp
             - name: PGDATA
               value: /var/lib/postgresql/data/pgdata
+
           ports:
-            - containerPort: 5432
+            - name: postgres
+              containerPort: 5432
+
+          # cpu/mem requests and limits
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              memory: 1Gi
+
+          # wait for initdb to finish on first boot
+          startupProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - pg_isready -h 127.0.0.1 -p 5432 -U "$POSTGRES_USER" -d "$POSTGRES_DB"
+            periodSeconds: 5
+            failureThreshold: 30
+          # mark pod ready to serve traffic
+          readinessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - pg_isready -h 127.0.0.1 -p 5432 -U "$POSTGRES_USER" -d "$POSTGRES_DB"
+            periodSeconds: 10
+            timeoutSeconds: 3
+          # restart container if it hangs
+          livenessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - pg_isready -h 127.0.0.1 -p 5432 -U "$POSTGRES_USER"
+            periodSeconds: 20
+            timeoutSeconds: 3
+            failureThreshold: 3
+
+          # mount persistent volume
           volumeMounts:
             - name: data
               mountPath: /var/lib/postgresql/data
+  # persistent disk for db data
   volumeClaimTemplates:
     - metadata:
         name: data
