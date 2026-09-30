@@ -69,10 +69,18 @@ spec:
             timeoutSeconds: 3
             failureThreshold: 3
 
-          # mount persistent volume
+          # mount persistent volume and init scripts
           volumeMounts:
             - name: data
               mountPath: /var/lib/postgresql/data
+            - name: init-scripts
+              mountPath: /docker-entrypoint-initdb.d
+
+      # sql run once on an empty data dir (enables citext)
+      volumes:
+        - name: init-scripts
+          configMap:
+            name: db-init
   # persistent disk for db data
   volumeClaimTemplates:
     - metadata:

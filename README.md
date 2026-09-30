@@ -10,6 +10,7 @@ cluster/minikube/start.sh    Provision the local cluster and deploy the stack
 k8s/base/                    Kustomize base
 ├── namespace.yaml           Namespace: demo
 ├── postgres/                StatefulSet + headless Service + credentials Secret
+│                            + db-init ConfigMap (citext extension)
 └── nopcommerce/             Deployment + Service + PVC
 ```
 
@@ -46,7 +47,7 @@ minikube delete --profile=devops-infra
 
 | Workload | Image | Notes |
 | --- | --- | --- |
-| `db` (StatefulSet) | `postgres:15-alpine` | Headless Service on 5432, 1Gi volume from a `volumeClaimTemplate`, `pg_isready` startup/readiness/liveness probes |
+| `db` (StatefulSet) | `postgres:15-alpine` | Headless Service on 5432, 1Gi volume from a `volumeClaimTemplate`, `pg_isready` startup/readiness/liveness probes, `db-init` ConfigMap mounted at `/docker-entrypoint-initdb.d` to enable the `citext` extension that the nopCommerce installer requires |
 | `nopcommerce` (Deployment) | `nopcommerceteam/nopcommerce:4.90.8` | Single replica with `Recreate` strategy, 1Gi PVC mounted at `/app/App_Data`, init container seeds the default `App_Data`, long startup probe (~5 min) for first boot |
 
 ## Notes
@@ -56,3 +57,6 @@ minikube delete --profile=devops-infra
   store before any shared environment.
 - nopCommerce is not yet wired to the `db` StatefulSet — the database is configured through
   the application's first-run installation wizard.
+- `init.sql` runs only on first boot, when the postgres entrypoint initialises an empty data
+  directory. On a volume that already exists the extension is not added, so delete the `db`
+  PVC (or enable `citext` by hand once) to pick it up.
