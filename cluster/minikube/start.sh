@@ -15,7 +15,7 @@ minikube start \
   --profile="$PROFILE" \
   --driver=docker \
   --cpus=2 \
-  --memory=6g \
+  --memory=7g \
   --kubernetes-version=v1.35.1
 
 # wait until the node is ready
