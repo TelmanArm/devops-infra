@@ -8,6 +8,5 @@ resources:
   - postgres/service.yaml
   - postgres/statefulset.yaml
   
-  - nopcommerce/pvc.yaml
-  - nopcommerce/deployment.yaml
-  - nopcommerce/service.yaml
+  - slowroad/deployment.yaml
+  - slowroad/service.yaml

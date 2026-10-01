@@ -1,0 +1,76 @@
+# Deployment: keeps the Slow Road pod running
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: slowroad
+  namespace: demo
+
+spec:
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: slowroad
+
+  template:
+    metadata:
+      labels:
+        app: slowroad
+
+    spec:
+      containers:
+        - name: slowroad
+          image: ghcr.io/telmanarm/slowroad-armenia:latest
+          ports:
+            - name: http
+              containerPort: 8080
+
+          env:
+            # DB values come from the Postgres Secret
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef: { name: db-credentials, key: POSTGRES_USER }
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef: { name: db-credentials, key: POSTGRES_PASSWORD }
+            - name: POSTGRES_DB
+              valueFrom:
+                secretKeyRef: { name: db-credentials, key: POSTGRES_DB }
+
+            # Built from the 3 values above ("db" = Postgres Service name)
+            - name: ConnectionStrings__Default
+              value: "Host=db;Port=5432;Database=$(POSTGRES_DB);Username=$(POSTGRES_USER);Password=$(POSTGRES_PASSWORD)"
+
+            # Admin login, from a new Secret "slowroad-app"
+            - name: Admin__Email
+              valueFrom:
+                secretKeyRef: { name: slowroad-app, key: ADMIN_EMAIL }
+            - name: Admin__Password
+              valueFrom:
+                secretKeyRef: { name: slowroad-app, key: ADMIN_PASSWORD }
+
+            # Only works after you add the Migrate() code to Program.cs
+            - name: RunMigrations
+              value: "true"
+
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              memory: 512Mi
+
+          startupProbe:
+            httpGet: { path: /, port: http }
+            periodSeconds: 5
+            failureThreshold: 24      # up to ~2 min
+          readinessProbe:
+            httpGet: { path: /, port: http }
+            periodSeconds: 10
+            timeoutSeconds: 3
+          livenessProbe:
+            httpGet: { path: /, port: http }
+            periodSeconds: 20
+            timeoutSeconds: 3
+            failureThreshold: 3

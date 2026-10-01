@@ -33,17 +33,17 @@ helm upgrade --install argocd argo/argo-cd \
 "${ARGO[@]}" rollout status deployment/argocd-server --timeout=300s
 
 # hand the app over to Argo CD
-kubectl --context="$PROFILE" apply -f "$ROOT_DIR/argocd/apps/nopcommerce.yaml"
+kubectl --context="$PROFILE" apply -f "$ROOT_DIR/argocd/apps/slowroad.yaml"
 
 # wait until Argo CD has created the workloads
-until "${KCTL[@]}" get statefulset/db deployment/nopcommerce >/dev/null 2>&1; do
+until "${KCTL[@]}" get statefulset/db deployment/slowroad >/dev/null 2>&1; do
   echo "waiting for Argo CD to sync..."
   sleep 5
 done
 
 # wait until db and app are up
 "${KCTL[@]}" rollout status statefulset/db --timeout=180s
-"${KCTL[@]}" rollout status deployment/nopcommerce --timeout=300s
+"${KCTL[@]}" rollout status deployment/slowroad --timeout=300s
 
 # Argo CD credentials and UI in the background
 echo "Argo CD user: admin"
@@ -54,4 +54,12 @@ echo "Argo CD UI: https://localhost:$ARGOCD_PORT"
 
 # forward app port to localhost (keeps running)
 echo "App: http://localhost:$LOCAL_PORT"
-"${KCTL[@]}" port-forward svc/nopcommerce "$LOCAL_PORT":80
+"${KCTL[@]}" port-forward svc/slowroad "$LOCAL_PORT":80
+
+# create admin Secret from local .env (not in git)
+kubectl --context="$PROFILE" create namespace "$NAMESPACE" \
+     --dry-run=client -o yaml | kubectl --context="$PROFILE" apply -f -
+kubectl --context="$PROFILE" -n "$NAMESPACE" create secret generic slowroad-app \
+     --from-env-file="$ROOT_DIR/.env" \
+     --dry-run=client -o yaml | kubectl --context="$PROFILE" apply -f -
+kubectl --context="$PROFILE" wait --for=condition=Ready node --all --timeout=120s
