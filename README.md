@@ -10,11 +10,14 @@ Terraform and cloud environments are planned.
 cluster/minikube/start.sh         Provision the local cluster, install Argo CD, hand over the app
 argocd/apps/slowroad.yaml         Argo CD Application (tracks k8s/overlays/local on develop)
 k8s/base/                         Kustomize base
+├── kustomization.yaml            Resource list pulled in by the overlay
 ├── namespace.yaml                Namespace: demo
 ├── postgres/                     StatefulSet + headless Service + credentials Secret
 │                                 + db-init ConfigMap (citext extension)
 └── slowroad/                     Deployment + Service
-k8s/overlays/local/               Local overlay (adds env=local labels)
+k8s/overlays/local/               Local overlay
+└── kustomization.yaml            Points at ../../base, adds env=local labels
+docs/images/                      Screenshots used in this README
 ```
 
 ## Requirements
@@ -79,6 +82,11 @@ minikube delete --profile=devops-infra
 `k8s/overlays/local`) with `prune` and `selfHeal` enabled. After the cluster is up, changes
 pushed to `develop` are applied automatically — manual `kubectl apply` is only for
 bootstrapping or for a cluster without Argo CD.
+
+<img src="docs/images/ArgoCD.png" width="900" alt="Argo CD resource tree for the slowroad Application: Healthy and Synced to develop, showing the demo namespace, db-init ConfigMap, db-credentials Secret, both Services, the slowroad Deployment with its ReplicaSet and pod, and the db StatefulSet with its pod and data-db-0 PVC">
+
+*The `slowroad` Application after a sync — every resource in `k8s/overlays/local` reconciled
+from the `develop` branch.*
 
 ## Notes
 
