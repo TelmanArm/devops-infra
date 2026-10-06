@@ -1,0 +1,4 @@
+kube_context   = "devops-infra"
+namespace      = "demo"
+admin_email    = ""
+admin_password = ""
