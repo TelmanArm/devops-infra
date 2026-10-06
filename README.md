@@ -2,21 +2,24 @@
 
 Kubernetes infrastructure for the **Slow Road Armenia** app + PostgreSQL, deployed with
 Kustomize and reconciled by Argo CD. Currently targets a local minikube cluster;
-Terraform and cloud environments are planned.
+cloud environments are planned.
 
 ## Layout
 
 ```
 cluster/minikube/start.sh         Provision the local cluster, install Argo CD, hand over the app
-argocd/apps/slowroad.yaml         Argo CD Application (tracks k8s/overlays/local on develop)
 k8s/base/                         Kustomize base
 ├── kustomization.yaml            Resource list pulled in by the overlay
-├── namespace.yaml                Namespace: demo
 ├── postgres/                     StatefulSet + headless Service + credentials Secret
 │                                 + db-init ConfigMap (citext extension)
 └── slowroad/                     Deployment + Service
 k8s/overlays/local/               Local overlay
 └── kustomization.yaml            Points at ../../base, adds env=local labels
+terraform/local/                  Terraform for the local cluster
+├── main.tf                       slowroad Namespace + slowroad-app Secret (admin credentials)
+│                                 + Argo CD release + slowroad Argo CD Application
+├── providers.tf                  kubernetes + helm providers
+└── variables.tf                  Inputs, see terraform.tfvars.example
 docs/images/                      Screenshots used in this README
 ```
 
@@ -25,17 +28,17 @@ docs/images/                      Screenshots used in this README
 - Docker
 - minikube
 - kubectl (with kustomize support)
-- helm (used to install Argo CD)
+- terraform (>= 1.9)
 
 ## Setup
 
-Admin credentials for the app are read from a local `.env` file that is **not** committed.
-Copy the example and fill it in before the first run:
+Admin credentials for the app come from `terraform/local/terraform.tfvars`, which is
+**not** committed. Copy the example and fill it in before the first run:
 
 ```bash
-cp .env.example .env
-# ADMIN_EMAIL=...
-# ADMIN_PASSWORD=...
+cp terraform/local/terraform.tfvars.example terraform/local/terraform.tfvars
+# admin_email    = "..."
+# admin_password = "..."
 ```
 
 ## Usage
@@ -47,12 +50,12 @@ cp .env.example .env
 The script:
 
 1. starts the `devops-infra` minikube profile (2 CPUs, 7Gi, Kubernetes v1.35.1),
-2. creates the `demo` namespace and the `slowroad-app` Secret from `.env`,
-3. installs Argo CD via Helm into the `argocd` namespace,
-4. applies `argocd/apps/slowroad.yaml` so Argo CD syncs `k8s/overlays/local`,
-5. waits for the `db` StatefulSet and `slowroad` Deployment to roll out,
-6. prints the Argo CD admin password and port-forwards the UI to <https://localhost:8085>,
-7. port-forwards the app to <http://localhost:8084> and stays in the foreground.
+2. applies `terraform/local`, which creates the `slowroad` namespace and the
+   `slowroad-app` Secret, installs Argo CD into the `argocd` namespace, and creates the
+   `slowroad` Argo CD Application so Argo CD syncs `k8s/overlays/local`,
+3. waits for the `db` StatefulSet and `slowroad` Deployment to roll out,
+4. prints the Argo CD admin password and port-forwards the UI to <https://localhost:8085>,
+5. port-forwards the app to <http://localhost:8084> and stays in the foreground.
 
 Override the ports with `LOCAL_PORT=9090 ARGOCD_PORT=9091 ./cluster/minikube/start.sh`.
 
@@ -60,7 +63,7 @@ Manual deploy against an existing cluster (bypassing Argo CD):
 
 ```bash
 kubectl apply -k k8s/overlays/local
-kubectl -n demo get pods
+kubectl -n slowroad get pods
 ```
 
 Teardown:
@@ -78,12 +81,12 @@ minikube delete --profile=devops-infra
 
 ## GitOps
 
-`argocd/apps/slowroad.yaml` points Argo CD at this repository (`develop` branch,
-`k8s/overlays/local`) with `prune` and `selfHeal` enabled. After the cluster is up, changes
-pushed to `develop` are applied automatically — manual `kubectl apply` is only for
-bootstrapping or for a cluster without Argo CD.
+The `slowroad` Application is defined in `terraform/local/main.tf` and points Argo CD at
+this repository (`develop` branch, `k8s/overlays/local`) with `prune` and `selfHeal`
+enabled. After the cluster is up, changes pushed to `develop` are applied automatically —
+manual `kubectl apply` is only for bootstrapping or for a cluster without Argo CD.
 
-<img src="docs/images/ArgoCD.png" width="900" alt="Argo CD resource tree for the slowroad Application: Healthy and Synced to develop, showing the demo namespace, db-init ConfigMap, db-credentials Secret, both Services, the slowroad Deployment with its ReplicaSet and pod, and the db StatefulSet with its pod and data-db-0 PVC">
+<img src="docs/images/ArgoCD.png" width="900" alt="Argo CD resource tree for the slowroad Application: Healthy and Synced to develop, showing the slowroad namespace, db-init ConfigMap, db-credentials Secret, both Services, the slowroad Deployment with its ReplicaSet and pod, and the db StatefulSet with its pod and data-db-0 PVC">
 
 *The `slowroad` Application after a sync — every resource in `k8s/overlays/local` reconciled
 from the `develop` branch.*
@@ -93,9 +96,11 @@ from the `develop` branch.*
 - `k8s/base/postgres/secret.yaml` holds plaintext development credentials and is intended
   for local use only. Replace it with a sealed/SOPS-encrypted secret or an external secret
   store before any shared environment.
-- The `slowroad-app` Secret is created imperatively by `start.sh` from `.env`, so it is not
-  part of the Kustomize base and Argo CD does not manage it. A fresh cluster needs `.env`
-  present, otherwise the app pod will not start.
+- The `slowroad` namespace and the `slowroad-app` Secret are managed by Terraform, so they
+  are not part of the Kustomize base and Argo CD does not manage them. A fresh cluster needs
+  `terraform.tfvars` present, otherwise the `apply` fails and the app pod will not start.
+- Terraform state stays local and holds `admin_password` in plaintext. It is gitignored;
+  use an encrypted remote backend before any shared environment.
 - `RunMigrations=true` is set on the app container; it only has an effect if the application
   itself runs migrations on startup.
 - `init.sql` runs only on first boot, when the postgres entrypoint initialises an empty data

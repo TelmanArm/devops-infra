@@ -3,7 +3,7 @@ kind: Service
 
 metadata:
   name: slowroad
-  namespace: demo
+  namespace: slowroad
   
 spec:
   selector:
