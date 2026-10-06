@@ -24,15 +24,8 @@ kubectl --context="$PROFILE" wait --for=condition=Ready node --all --timeout=120
 terraform -chdir="$ROOT_DIR/terraform/local" init -input=false
 terraform -chdir="$ROOT_DIR/terraform/local" apply -input=false -auto-approve
 
-helm repo add argo https://argoproj.github.io/argo-helm
-helm repo update
-helm upgrade --install argocd argo/argo-cd \
-  --kube-context "$PROFILE" \
-  --namespace argocd --create-namespace
-"${ARGO[@]}" rollout status deployment/argocd-server --timeout=300s
 
-# from here on the app is Argo CD's job
-kubectl --context="$PROFILE" apply -f "$ROOT_DIR/argocd/apps/slowroad.yaml"
+"${ARGO[@]}" rollout status deployment/argocd-server --timeout=300s
 
 # rollout status errors out if the objects aren't there yet, so wait for the first sync
 until "${KCTL[@]}" get statefulset/db deployment/slowroad >/dev/null 2>&1; do
