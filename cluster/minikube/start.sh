@@ -13,7 +13,7 @@ ARGO=(kubectl --context="$PROFILE" --namespace=argocd)
 minikube start \
   --profile="$PROFILE" \
   --driver=docker \
-  --cpus=2 \
+  --cpus=4 \
   --memory=7g \
   --kubernetes-version=v1.35.1
 
