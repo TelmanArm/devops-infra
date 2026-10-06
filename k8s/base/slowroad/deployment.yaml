@@ -4,7 +4,7 @@ kind: Deployment
 
 metadata:
   name: slowroad
-  namespace: demo
+  namespace: slowroad
 
 spec:
   replicas: 1

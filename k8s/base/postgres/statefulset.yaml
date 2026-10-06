@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: db
-  namespace: demo
+  namespace: slowroad
 spec:
   serviceName: db
   replicas: 1

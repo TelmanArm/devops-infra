@@ -1,7 +1,17 @@
+resource "kubernetes_namespace" "app" {
+  metadata {
+    name = var.namespace
+
+    labels = {
+      "app.kubernetes.io/part-of" = "slowroad"
+    }
+  }
+}
+
 resource "kubernetes_secret" "slowroad_app" {
   metadata {
     name      = "slowroad-app"
-    namespace = var.namespace
+    namespace = kubernetes_namespace.app.metadata[0].name
   }
 
   data = {

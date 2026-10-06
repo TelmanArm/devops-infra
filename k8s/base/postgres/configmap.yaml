@@ -3,7 +3,7 @@ kind: ConfigMap
 
 metadata:
   name: db-init
-  namespace: demo
+  namespace: slowroad
 
 # run by the postgres entrypoint on first init, against POSTGRES_DB
 data:

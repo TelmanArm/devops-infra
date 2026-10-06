@@ -7,7 +7,7 @@ variable "kube_context" {
 variable "namespace" {
   description = "namespace the app runs in"
   type        = string
-  default     = "demo"
+  default     = "slowroad"
 }
 
 variable "admin_email" {

@@ -2,7 +2,7 @@
 set -euo pipefail
 
 PROFILE="devops-infra"
-NAMESPACE="demo"
+NAMESPACE="slowroad"
 LOCAL_PORT="${LOCAL_PORT:-8084}"
 ARGOCD_PORT="${ARGOCD_PORT:-8085}"
 
@@ -19,8 +19,6 @@ minikube start \
 
 kubectl --context="$PROFILE" wait --for=condition=Ready node --all --timeout=120s
 
-kubectl --context="$PROFILE" create namespace "$NAMESPACE" \
-  --dry-run=client -o yaml | kubectl --context="$PROFILE" apply -f -
 
 # admin Secret, values come from terraform/local/terraform.tfvars
 terraform -chdir="$ROOT_DIR/terraform/local" init -input=false

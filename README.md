@@ -11,14 +11,13 @@ cluster/minikube/start.sh         Provision the local cluster, install Argo CD, 
 argocd/apps/slowroad.yaml         Argo CD Application (tracks k8s/overlays/local on develop)
 k8s/base/                         Kustomize base
 ├── kustomization.yaml            Resource list pulled in by the overlay
-├── namespace.yaml                Namespace: demo
 ├── postgres/                     StatefulSet + headless Service + credentials Secret
 │                                 + db-init ConfigMap (citext extension)
 └── slowroad/                     Deployment + Service
 k8s/overlays/local/               Local overlay
 └── kustomization.yaml            Points at ../../base, adds env=local labels
 terraform/local/                  Terraform for the local cluster
-├── main.tf                       slowroad-app Secret (admin credentials)
+├── main.tf                       slowroad Namespace + slowroad-app Secret (admin credentials)
 ├── providers.tf                  kubernetes + helm providers
 └── variables.tf                  Inputs, see terraform.tfvars.example
 docs/images/                      Screenshots used in this README
@@ -52,7 +51,7 @@ cp terraform/local/terraform.tfvars.example terraform/local/terraform.tfvars
 The script:
 
 1. starts the `devops-infra` minikube profile (2 CPUs, 7Gi, Kubernetes v1.35.1),
-2. creates the `demo` namespace and applies `terraform/local` to create the
+2. applies `terraform/local`, which creates the `slowroad` namespace and the
    `slowroad-app` Secret,
 3. installs Argo CD via Helm into the `argocd` namespace,
 4. applies `argocd/apps/slowroad.yaml` so Argo CD syncs `k8s/overlays/local`,
@@ -66,7 +65,7 @@ Manual deploy against an existing cluster (bypassing Argo CD):
 
 ```bash
 kubectl apply -k k8s/overlays/local
-kubectl -n demo get pods
+kubectl -n slowroad get pods
 ```
 
 Teardown:
@@ -89,7 +88,7 @@ minikube delete --profile=devops-infra
 pushed to `develop` are applied automatically — manual `kubectl apply` is only for
 bootstrapping or for a cluster without Argo CD.
 
-<img src="docs/images/ArgoCD.png" width="900" alt="Argo CD resource tree for the slowroad Application: Healthy and Synced to develop, showing the demo namespace, db-init ConfigMap, db-credentials Secret, both Services, the slowroad Deployment with its ReplicaSet and pod, and the db StatefulSet with its pod and data-db-0 PVC">
+<img src="docs/images/ArgoCD.png" width="900" alt="Argo CD resource tree for the slowroad Application: Healthy and Synced to develop, showing the slowroad namespace, db-init ConfigMap, db-credentials Secret, both Services, the slowroad Deployment with its ReplicaSet and pod, and the db StatefulSet with its pod and data-db-0 PVC">
 
 *The `slowroad` Application after a sync — every resource in `k8s/overlays/local` reconciled
 from the `develop` branch.*
@@ -99,9 +98,9 @@ from the `develop` branch.*
 - `k8s/base/postgres/secret.yaml` holds plaintext development credentials and is intended
   for local use only. Replace it with a sealed/SOPS-encrypted secret or an external secret
   store before any shared environment.
-- The `slowroad-app` Secret is managed by Terraform, so it is not part of the Kustomize
-  base and Argo CD does not manage it. A fresh cluster needs `terraform.tfvars` present,
-  otherwise the `apply` fails and the app pod will not start.
+- The `slowroad` namespace and the `slowroad-app` Secret are managed by Terraform, so they
+  are not part of the Kustomize base and Argo CD does not manage them. A fresh cluster needs
+  `terraform.tfvars` present, otherwise the `apply` fails and the app pod will not start.
 - Terraform state stays local and holds `admin_password` in plaintext. It is gitignored;
   use an encrypted remote backend before any shared environment.
 - `RunMigrations=true` is set on the app container; it only has an effect if the application
