@@ -1,0 +1,7 @@
+# macOS Finder metadata, created in any opened folder
+.DS_Store
+# IDE settings (Rider / VS Code)
+.idea/
+.vscode/
+# Output of `helm package` run inside this folder
+*.tgz

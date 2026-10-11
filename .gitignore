@@ -47,6 +47,10 @@ override.tf
 override.tf.json
 _override.tf
 _override.tf.json
+*.tfplan
+tfplan
+.terraformrc
+terraform.rc
 
 # --- Terragrunt ---
 .terragrunt-cache/
