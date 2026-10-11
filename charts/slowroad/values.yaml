@@ -1,0 +1,9 @@
+app:
+  image: ghcr.io/telmanarm/slowroad-armenia
+  tag: latest
+  replicas: 1
+postgres:
+  user: postgres
+  password: ""
+  database: slowroad
+  storage: 1Gi

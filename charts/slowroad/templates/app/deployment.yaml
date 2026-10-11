@@ -4,10 +4,10 @@ kind: Deployment
 
 metadata:
   name: slowroad
-  namespace: slowroad
+  namespace: {{ .Release.Namespace }}
 
 spec:
-  replicas: 1
+  replicas: {{ .Values.app.replicas }}
 
   selector:
     matchLabels:
@@ -21,7 +21,7 @@ spec:
     spec:
       containers:
         - name: slowroad
-          image: ghcr.io/telmanarm/slowroad-armenia:latest
+          image: "{{ .Values.app.image }}:{{ .Values.app.tag }}"
           ports:
             - name: http
               containerPort: 8080
