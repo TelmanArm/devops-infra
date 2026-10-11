@@ -44,9 +44,10 @@ resource "helm_release" "argocd_apps" {
         namespace = "argocd"
         project   = "default"
         source = {
-          repoURL        = "https://github.com/TelmanArm/devops-infra.git"
+          repoURL = "https://github.com/TelmanArm/devops-infra.git"
           targetRevision = "develop"
-          path           = "k8s/overlays/local"
+          path = "charts/slowroad"
+          helm = { valueFiles = ["values-local.yaml"] }
         }
         destination = {
           server    = "https://kubernetes.default.svc"
