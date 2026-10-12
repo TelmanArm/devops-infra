@@ -1,0 +1,3 @@
+postgres:
+  password: change-me
+  storage: 5Gi
