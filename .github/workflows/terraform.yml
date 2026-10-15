@@ -1,2 +1,29 @@
+name: terrafomr
+
 on:
+  push: [ main ]
+  paths: [ "terraform/**" ]
+
 jobs:
+  validate:
+    runs-on: ubuntu-latest
+    
+    defaults:
+      run:
+        working-directory: terraform/aws
+    
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        wait:
+          terraform_version: 1.10.5
+          
+      - name: Format check
+        run: terraform fmt -check -recursive
+        
+      - name: Init
+        run: terraform init -backend=false -input=false
+
+      - name: Validate
+        run: terraform validate
