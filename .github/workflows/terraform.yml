@@ -1,27 +1,34 @@
-name: terrafomr
+name: terraform
 
 on:
-  push: [ main ]
-  paths: [ "terraform/**" ]
+  push:
+    branches: [ main, develop ]
+    paths: [ "terraform/**", ".github/workflows/terraform.yml" ]
+  pull_request:
+    paths: [ "terraform/**", ".github/workflows/terraform.yml" ]
 
 jobs:
   validate:
     runs-on: ubuntu-latest
-    
+
+    strategy:
+      matrix:
+        dir: [ terraform/aws, terraform/local ]
+
     defaults:
       run:
-        working-directory: terraform/aws
-    
+        working-directory: ${{ matrix.dir }}
+
     steps:
       - uses: actions/checkout@v4
 
       - uses: hashicorp/setup-terraform@v3
-        wait:
+        with:
           terraform_version: 1.10.5
-          
+
       - name: Format check
         run: terraform fmt -check -recursive
-        
+
       - name: Init
         run: terraform init -backend=false -input=false
 
