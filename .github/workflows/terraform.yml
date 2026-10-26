@@ -2,22 +2,15 @@ name: terraform
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ main ]
     paths: [ "terraform/**", ".github/workflows/terraform.yml" ]
   pull_request:
-    paths: [ "terraform/**", ".github/workflows/terraform.yml" ]
+    branches: [ main ]
+  workflow_dispatch:
 
 jobs:
   validate:
     runs-on: ubuntu-latest
-
-    strategy:
-      matrix:
-        dir: [ terraform/aws, terraform/local ]
-
-    defaults:
-      run:
-        working-directory: ${{ matrix.dir }}
 
     steps:
       - uses: actions/checkout@v4
@@ -27,10 +20,12 @@ jobs:
           terraform_version: 1.10.5
 
       - name: Format check
-        run: terraform fmt -check -recursive
+        run: terraform fmt -check -recursive terraform/
 
-      - name: Init
-        run: terraform init -backend=false -input=false
-
-      - name: Validate
-        run: terraform validate
+      - name: Init & validate
+        run: |
+          for d in terraform/aws terraform/bootstrap; do
+            echo "== $d"
+            terraform -chdir=$d init -backend=false -input=false
+            terraform -chdir=$d validate
+          done
